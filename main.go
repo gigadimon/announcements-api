@@ -1,5 +1,14 @@
 package main
 
-import _ "github.com/joho/godotenv/autoload"
+import (
+	"announce-api/router"
+	"announce-api/server"
 
-func main() {}
+	_ "github.com/joho/godotenv/autoload"
+)
+
+func main() {
+	srv := server.NewServer(router.Init())
+
+	srv.Run()
+}
