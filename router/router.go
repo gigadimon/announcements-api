@@ -1,13 +1,29 @@
 package router
 
-import "github.com/gin-gonic/gin"
+import (
+	"announce-api/handlers"
 
-func Init() *gin.Engine {
-	router := gin.Default()
+	"github.com/gin-gonic/gin"
+)
 
-	registerAuthRoutes(router)
+type Router struct {
+	Handler *handlers.Handler
+	Router  *gin.Engine
+}
 
-	registerApiRoutes(router)
+func newRouter(handler *handlers.Handler) *Router {
+	return &Router{
+		Router:  gin.Default(),
+		Handler: handler,
+	}
+}
 
-	return router
+func Init(handler *handlers.Handler) *gin.Engine {
+	r := newRouter(handler)
+
+	registerAuthRoutes(r)
+
+	registerApiRoutes(r)
+
+	return r.Router
 }

@@ -1,24 +1,22 @@
 package router
 
 import (
-	"announce-api/handlers"
-
 	"github.com/gin-gonic/gin"
 )
 
-func registerApiRoutes(router *gin.Engine) {
-	api := router.Group("/api")
+func registerApiRoutes(r *Router) {
+	api := r.Router.Group("/api")
 	{
-		registerAnnouncementsRoutes(api)
+		registerAnnouncementsRoutes(r, api)
 	}
 }
 
-func registerAnnouncementsRoutes(group *gin.RouterGroup) {
+func registerAnnouncementsRoutes(r *Router, group *gin.RouterGroup) {
 	announcements := group.Group("/announcements")
 	{
-		announcements.GET("/", handlers.GetAnnouncementList)
-		announcements.POST("/:postId", handlers.CreateAnnouncement)
-		announcements.PUT("/:postId", handlers.UpdateAnnouncement)
-		announcements.DELETE("/:postId", handlers.DeleteAnnouncement)
+		announcements.GET("/", r.Handler.GetAnnouncementList)
+		announcements.POST("/:postId", r.Handler.CreateAnnouncement)
+		announcements.PUT("/:postId", r.Handler.UpdateAnnouncement)
+		announcements.DELETE("/:postId", r.Handler.DeleteAnnouncement)
 	}
 }

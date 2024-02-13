@@ -1,15 +1,9 @@
 package router
 
-import (
-	"announce-api/handlers"
-
-	"github.com/gin-gonic/gin"
-)
-
-func registerAuthRoutes(router *gin.Engine) {
-	auth := router.Group("/auth")
+func registerAuthRoutes(r *Router) {
+	auth := r.Router.Group("/auth")
 	{
-		auth.POST("/signin", handlers.SignIn)
-		auth.POST("/signup", handlers.SignUp)
+		auth.POST("/signin", r.Handler.SignIn)
+		auth.POST("/signup", r.Handler.SignUp)
 	}
 }
