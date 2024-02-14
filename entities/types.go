@@ -4,17 +4,22 @@ import "time"
 
 type ID int
 
+type InputSignUpUser struct {
+	Login    string `json:"login" validate:"required"`
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required"`
+}
+
+type InputSignInUser struct {
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required"`
+}
+
 type User struct {
 	ID       ID     `db:"id"`
 	Login    string `db:"login"`
 	Email    string `db:"email"`
 	Password string `db:"password"`
-}
-
-type InputUser struct {
-	Login    string `json:"login"`
-	Email    string `json:"email"`
-	Password string `json:"password"`
 }
 
 type Announcement struct {

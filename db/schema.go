@@ -2,10 +2,11 @@ package db
 
 var schema string = `
 CREATE TABLE IF NOT EXISTS users (
-    id       serial not null unique,
-	login    varchar(255) not null unique,
-	email    varchar(255) not null unique,
-	password varchar(255) not null
+    id       	  serial not null unique,
+	login    	  varchar(255) not null unique,
+	email    	  varchar(255) not null unique,
+	password 	  varchar(255) not null,
+	token 	 	  varchar(255)
 );
 
 CREATE TABLE IF NOT EXISTS announcements (

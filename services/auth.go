@@ -3,6 +3,7 @@ package services
 import (
 	"announce-api/db"
 	"announce-api/entities"
+	"announce-api/utils"
 	"errors"
 	"regexp"
 
@@ -13,38 +14,52 @@ type Authenticator struct {
 	client *db.DatabaseClient
 }
 
-func (a *Authenticator) CreateUser(user *entities.InputUser) (bool, error) {
-	if user.Email == "" {
-		return false, errors.New("email required")
-	}
-
-	if user.Login == "" {
-		return false, errors.New("login required")
-	}
-
-	if user.Password == "" {
-		return false, errors.New("password required")
+func (a *Authenticator) CreateUser(user *entities.InputSignUpUser) (int, error) {
+	if err := utils.ValidateStruct(user); err != nil {
+		return 0, err
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 	if err != nil {
-		return false, errors.New("password hashing failed: " + err.Error())
+		return 0, errors.New("password hashing failed: " + err.Error())
 	}
 
 	user.Password = string(hashedPassword)
 
 	if err := validateEmail(user.Email); err != nil {
-		return false, err
+		return 0, err
 	}
 
-	if err := a.client.CreateUser(user); err != nil {
-		return false, err
+	id, err := a.client.CreateUser(user)
+	if err != nil {
+		return 0, err
 	}
 
-	return false, nil
+	return id, nil
 }
 
-func (a *Authenticator) AuthorizeUser(user *entities.InputUser) {}
+func (a *Authenticator) AuthorizeUser(user *entities.InputSignInUser) (string, error) {
+	userFromDb, err := a.client.GetUser(user)
+	if err != nil {
+		return "", err
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(userFromDb.Password), []byte(user.Password)); err != nil {
+		return "", errors.New("email or password is incorrect")
+	}
+
+	tokenStr, err := a.client.GenerateAccessToken(userFromDb)
+	if err != nil {
+		return "", err
+	}
+
+	token, err := a.client.UpdateUserToken(userFromDb, tokenStr)
+	if err != nil {
+		return "", err
+	}
+
+	return token, nil
+}
 
 func validateEmail(input string) error {
 	matched, err := regexp.Match(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9]+\.[a-zA-Z]{2,}$`, []byte(input))

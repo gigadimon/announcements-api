@@ -24,9 +24,10 @@ type DatabaseClient struct {
 }
 
 type Auth interface {
-	CreateUser(user *entities.InputUser) error
-	AuthorizeUser()
-	generateUserAccessToken()
+	CreateUser(user *entities.InputSignUpUser) (int, error)
+	GetUser(user *entities.InputSignInUser) (*entities.User, error)
+	UpdateUserToken(user *entities.User, token string) (string, error)
+	GenerateAccessToken(user *entities.User) (string, error)
 }
 
 type AnnouncementActions interface {

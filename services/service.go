@@ -11,8 +11,8 @@ type Service struct {
 }
 
 type Auth interface {
-	CreateUser(user *entities.InputUser) (bool, error)
-	AuthorizeUser(user *entities.InputUser)
+	CreateUser(user *entities.InputSignUpUser) (int, error)
+	AuthorizeUser(user *entities.InputSignInUser) (string, error)
 }
 
 type AnnouncementActions interface {
