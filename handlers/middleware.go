@@ -13,48 +13,48 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func (h *Handler) Authenticate(c *gin.Context) {
-	authHeader := c.Request.Header.Get("Authorization")
+func (h *Handler) Authenticate(ctx *gin.Context) {
+	authHeader := ctx.Request.Header.Get("Authorization")
 	tokenPart, err := getTokenFromAuthHeader(authHeader)
 	if err != nil {
-		utils.SendErrorResponse(c, http.StatusForbidden, err.Error())
+		utils.SendErrorResponse(ctx, http.StatusUnauthorized, err.Error())
 		return
 	}
 
 	_, err = h.service.IsTokenExists(tokenPart)
 	if err != nil {
-		utils.SendErrorResponse(c, http.StatusForbidden, "not authorized: "+err.Error())
+		utils.SendErrorResponse(ctx, http.StatusUnauthorized, "not authorized: "+err.Error())
 		return
 	}
 
 	token, err := parseToken(tokenPart)
 	if err != nil {
-		utils.SendErrorResponse(c, http.StatusForbidden, "not authorized: token invalid. "+err.Error())
+		utils.SendErrorResponse(ctx, http.StatusUnauthorized, "not authorized: token invalid. "+err.Error())
 		return
 	}
 
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
-		utils.SendErrorResponse(c, http.StatusForbidden, "not authorized: token invalid")
+		utils.SendErrorResponse(ctx, http.StatusUnauthorized, "not authorized: token invalid")
 		return
 	}
 
 	expires, ok := claims["expires"].(float64)
 	if !ok {
-		utils.SendErrorResponse(c, http.StatusForbidden, "not authorized: token invalid. expires field is incorrect")
+		utils.SendErrorResponse(ctx, http.StatusUnauthorized, "not authorized: token invalid. expires field is incorrect")
 		return
 	}
 
 	expiresDiffWithNow := int64(expires) - time.Now().Unix()
 	if expiresDiffWithNow <= 0 {
-		utils.SendErrorResponse(c, http.StatusForbidden, "not authorized: token expired")
+		utils.SendErrorResponse(ctx, http.StatusUnauthorized, "not authorized: token expired")
 		return
 	}
 
-	c.Set("id", claims["id"])
-	c.Set("email", claims["email"])
-	c.Set("login", claims["login"])
-	c.Next()
+	ctx.Set("id", claims["id"])
+	ctx.Set("email", claims["email"])
+	ctx.Set("login", claims["login"])
+	ctx.Next()
 }
 
 func parseToken(tokenString string) (*jwt.Token, error) {
@@ -84,4 +84,17 @@ func getTokenFromAuthHeader(authHeader string) (string, error) {
 	}
 
 	return tokenPart, nil
+}
+
+func (h *Handler) IsUserAnnounceAuthor(ctx *gin.Context) {
+	postId, _ := ctx.Params.Get("postId")
+	userId := ctx.MustGet("id").(float64)
+
+	_, err := h.service.IsUserAnnounceAuthor(postId, fmt.Sprint(int(userId)))
+	if err != nil {
+		utils.SendErrorResponse(ctx, http.StatusForbidden, err.Error())
+		return
+	}
+
+	ctx.Next()
 }

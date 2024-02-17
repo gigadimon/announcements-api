@@ -8,6 +8,11 @@ import (
 	"github.com/lib/pq"
 )
 
+type PhotosForDB interface {
+	driver.Valuer
+	sql.Scanner
+}
+
 type InputSignUpUser struct {
 	Login    string `json:"login" validate:"required"`
 	Email    string `json:"email" validate:"required,email"`
@@ -27,28 +32,21 @@ type User struct {
 }
 
 type InputAnnouncement struct {
-	AuthorPhone string `form:"author_phone"`
-	Title       string `form:"title" validate:"required"`
-	Description string `form:"description" validate:"required"`
-	Photos      interface {
-		driver.Valuer
-		sql.Scanner
-	}
+	AuthorPhone string `form:"author_phone" json:"author_phone"`
+	Title       string `form:"title" json:"title" validate:"required"`
+	Description string `form:"description" json:"description" validate:"required"`
 }
 
-type AnnouncementForDB struct {
-	ID          int    `db:"id" json:"id"`
-	AuthorID    int    `db:"author_id" json:"author_id"`
-	AuthorLogin string `db:"author_login" json:"author_login"`
-	AuthorEmail string `db:"author_email" json:"author_email"`
-	AuthorPhone string `db:"author_phone" json:"author_phone"`
-	Title       string `db:"title" json:"title" validate:"required"`
-	Photos      interface {
-		driver.Valuer
-		sql.Scanner
-	} `db:"photos" json:"photos"`
-	Description string    `db:"description" json:"description" validate:"required"`
-	CreatedAt   time.Time `db:"created_at" json:"created_at"`
+type AnnouncementToDB struct {
+	ID          int         `db:"id" json:"id"`
+	AuthorID    int         `db:"author_id" json:"author_id"`
+	AuthorLogin string      `db:"author_login" json:"author_login"`
+	AuthorEmail string      `db:"author_email" json:"author_email"`
+	AuthorPhone string      `db:"author_phone" json:"author_phone"`
+	Title       string      `db:"title" json:"title" validate:"required"`
+	Photos      PhotosForDB `db:"photos" json:"photos"`
+	Description string      `db:"description" json:"description" validate:"required"`
+	CreatedAt   time.Time   `db:"created_at" json:"created_at"`
 }
 
 type AnnouncementFromDB struct {

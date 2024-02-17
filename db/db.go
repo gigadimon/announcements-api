@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/jmoiron/sqlx"
-	_ "github.com/lib/pq"
+	"github.com/lib/pq"
 )
 
 type Config struct {
@@ -31,13 +31,16 @@ type Auth interface {
 }
 
 type AnnouncementActions interface {
-	GetList()
-	GetOneById(id string) (*entities.AnnouncementFromDB, error)
-	CreateAnnounce(announcement *entities.AnnouncementForDB) (int, error)
-	UpdateAnnounce()
-	HideAnnounce()
+	GetList(page int, limit int) ([]*entities.AnnouncementFromDB, error)
+	GetOneById(postId string, userId string) (*entities.AnnouncementFromDB, error)
+	CreateAnnounce(announcement *entities.AnnouncementToDB) (*entities.AnnouncementFromDB, error)
+	UpdateAnnounceById(inputAnnouncement *entities.InputAnnouncement, postId string) (*entities.AnnouncementFromDB, error)
+	UploadNewAnnouncePhotosById(photos entities.PhotosForDB, id string) (pq.StringArray, error)
+	DeleteAnnouncePhotoById(postId string, photoName string) (pq.StringArray, error)
+	SwitchAnnounceVisibilityById(postId string) (bool, error)
 	DeleteAnnounceById(id string) error
 	GetAnnouncePhotosById(id string) ([]string, error)
+	GetAnnounceAuthorId(postId string) (string, error)
 }
 
 func newClient(db *sqlx.DB) *DatabaseClient {
@@ -62,21 +65,3 @@ func Connect(config Config) (*DatabaseClient, error) {
 	fmt.Println("Database connection successfull")
 	return client, nil
 }
-
-// func (c *DatabaseClient) CreateQueryString() string {
-// 	cfg := Config{
-// 		Driver: "postgres",
-// 		Host:   "localhost",
-// 	}
-
-// 	r := reflect.ValueOf(&cfg).Elem()
-// 	rt := r.Type()
-// 	for i := 0; i < rt.NumField(); i++ {
-// 		field := rt.Field(i)
-// 		rv := reflect.ValueOf(&cfg)
-// 		value := reflect.Indirect(rv).FieldByName(field.Name)
-// 		fmt.Println(field.Name, value.String())
-// 	}
-
-// 	return ""
-// }

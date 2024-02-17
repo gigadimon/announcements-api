@@ -3,86 +3,108 @@ package handlers
 import (
 	"announce-api/entities"
 	"announce-api/utils"
-	"context"
 	"database/sql"
 	"errors"
 	"fmt"
 	"net/http"
-	"os"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/lib/pq"
-	"github.com/minio/minio-go/v7"
-	"github.com/minio/minio-go/v7/pkg/credentials"
 )
 
 func (h *Handler) GetAnnouncementList(ctx *gin.Context) {
-	id, email, login := ctx.MustGet("id").(float64), ctx.MustGet("email").(string), ctx.MustGet("login").(string)
-	fmt.Println(id)
-	fmt.Println(email)
-	fmt.Println(login)
+	page := parseNumericQueryParam(ctx, "page", 1)
+	limit := parseNumericQueryParam(ctx, "limit", 20)
 
-}
-
-func (h *Handler) UpdateAnnouncement(ctx *gin.Context) {
-	ctx.Request.ParseMultipartForm(10 << 20)
-	if ctx.Request.MultipartForm == nil {
-		utils.SendErrorResponse(ctx, http.StatusBadRequest, "missing form data")
-		return
-	}
-
-	files, ok := ctx.Request.MultipartForm.File["files"]
-	if !ok {
-		utils.SendErrorResponse(ctx, http.StatusBadRequest, "dont have files")
-		return
-	}
-
-	minioClient, err := minio.New(os.Getenv("MIN_IO_HOST"), &minio.Options{
-		Creds:  credentials.NewStaticV4(os.Getenv("MIN_IO_ACCESS_KEY_ID"), os.Getenv("MIN_IO_ACCESS_KEY_SECRET"), ""),
-		Secure: false,
-	})
+	announcementsList, err := h.service.GetList(page, limit)
 	if err != nil {
 		utils.SendErrorResponse(ctx, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	for _, file := range files {
-		fileToUpload, err := file.Open()
-		if err != nil {
-			utils.SendErrorResponse(ctx, http.StatusBadRequest, err.Error())
-			return
-		}
-		defer fileToUpload.Close()
+	ctx.JSON(http.StatusOK, gin.H{"data": announcementsList})
+}
 
-		ui, err := minioClient.PutObject(context.Background(), "announcements", file.Filename, fileToUpload, file.Size, minio.PutObjectOptions{})
-		if err != nil {
-			utils.SendErrorResponse(ctx, http.StatusBadRequest, err.Error())
-			return
-		}
+func (h *Handler) UpdateAnnouncementById(ctx *gin.Context) {
+	inputAnnouncement := new(entities.InputAnnouncement)
+	postId, _ := ctx.Params.Get("postId")
 
-		fmt.Println("Uploaded", ui.Key, "to", ui.Bucket, ui.ETag, ui.VersionID, ui.Size)
+	if err := utils.ReadAndUnmarshallInputBody(ctx.Request.Body, inputAnnouncement); err != nil {
+		utils.SendErrorResponse(ctx, http.StatusBadRequest, err.Error())
+		return
 	}
+
+	announcement, err := h.service.UpdateAnnounce(inputAnnouncement, postId)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			utils.SendErrorResponse(ctx, http.StatusNotFound, "announcement to update not found")
+			return
+		}
+		utils.SendErrorResponse(ctx, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"data": announcement})
 }
 
-func (h *Handler) UploadNewPhoto(ctx *gin.Context) {
+func (h *Handler) UploadNewAnnouncePhotosById(ctx *gin.Context) {
+	postId, _ := ctx.Params.Get("postId")
+
+	form, err := ctx.MultipartForm()
+	if err != nil {
+		utils.SendErrorResponse(ctx, http.StatusBadRequest, "parsing form data failed: "+err.Error())
+		return
+	}
+
+	files, ok := form.File["files"]
+	if !ok {
+		utils.SendErrorResponse(ctx, http.StatusBadRequest, "files required")
+		return
+	}
+
+	photos := h.service.CreateListOfPhotos(files)
+
+	updatedPhotosList, err := h.service.UploadNewAnnouncePhotosById(pq.Array(photos), postId)
+	if err != nil {
+		utils.SendErrorResponse(ctx, http.StatusBadRequest, "upload new photos failed. "+err.Error())
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"data": updatedPhotosList})
 }
 
-func (h *Handler) DeletePhoto(ctx *gin.Context) {
+func (h *Handler) DeleteAnnouncePhotoById(ctx *gin.Context) {
+	postId, _ := ctx.Params.Get("postId")
+	photoName, _ := ctx.Params.Get("photoName")
+
+	updatedPhotos, err := h.service.DeleteAnnouncePhotoById(postId, photoName)
+	if err != nil {
+		utils.SendErrorResponse(ctx, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"data": updatedPhotos})
 }
 
-func (h *Handler) HideAnnounce(ctx *gin.Context) {
+func (h *Handler) SwitchAnnounceVisibilityById(ctx *gin.Context) {
+	postId, _ := ctx.Params.Get("postId")
+
+	isHidden, err := h.service.SwitchAnnounceVisibilityById(postId)
+	if err != nil {
+		utils.SendErrorResponse(ctx, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"is_hidden": isHidden})
 }
 
 func (h *Handler) GetAnnouncementById(ctx *gin.Context) {
 	postId, _ := ctx.Params.Get("postId")
+	userId := ctx.MustGet("id").(float64)
 
-	announcement, err := h.service.GetOneById(postId)
+	announcement, err := h.service.GetOneById(postId, fmt.Sprint(userId))
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			utils.SendErrorResponse(ctx, http.StatusBadRequest, "announce with passed id not found")
-			return
-		}
-
 		utils.SendErrorResponse(ctx, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -93,9 +115,9 @@ func (h *Handler) GetAnnouncementById(ctx *gin.Context) {
 func (h *Handler) CreateAnnouncement(ctx *gin.Context) {
 	inputAnnouncement := new(entities.InputAnnouncement)
 	// Парсим форму... !!!Проблема при отправке файлов на 250кбайт+
-	form, _ := ctx.MultipartForm()
-	if form == nil {
-		utils.SendErrorResponse(ctx, http.StatusBadRequest, "missing form data")
+	form, err := ctx.MultipartForm()
+	if err != nil {
+		utils.SendErrorResponse(ctx, http.StatusBadRequest, "parsing form data failed: "+err.Error())
 		return
 	}
 
@@ -112,12 +134,10 @@ func (h *Handler) CreateAnnouncement(ctx *gin.Context) {
 		return
 	}
 
-	// Добавляем фото
-	inputAnnouncement.Photos = pq.Array(photos)
 	authorInfo := getAuthorInfo(ctx)
 
 	// Наконец создаем анонс
-	createdAnnouncement, err := h.service.CreateAnnounce(inputAnnouncement, authorInfo)
+	createdAnnouncement, err := h.service.CreateAnnounce(inputAnnouncement, pq.Array(photos), authorInfo)
 	if err != nil {
 		utils.SendErrorResponse(ctx, http.StatusBadRequest, err.Error())
 		return
@@ -126,7 +146,7 @@ func (h *Handler) CreateAnnouncement(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, gin.H{"message": "announcement created", "data": createdAnnouncement})
 }
 
-func (h *Handler) DeleteAnnouncement(ctx *gin.Context) {
+func (h *Handler) DeleteAnnouncementById(ctx *gin.Context) {
 	postId, _ := ctx.Params.Get("postId")
 
 	photos, err := h.service.GetAnnouncePhotosById(postId)
@@ -141,7 +161,7 @@ func (h *Handler) DeleteAnnouncement(ctx *gin.Context) {
 
 	if err := h.service.DeleteAnnounceById(postId); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			utils.SendErrorResponse(ctx, http.StatusBadRequest, "announce with passed id not found")
+			utils.SendErrorResponse(ctx, http.StatusNotFound, "announce with passed id not found")
 			return
 		}
 
@@ -155,4 +175,19 @@ func (h *Handler) DeleteAnnouncement(ctx *gin.Context) {
 func getAuthorInfo(ctx *gin.Context) entities.AuthorInfo {
 	authorId, authorEmail, authorLogin := ctx.MustGet("id").(float64), ctx.MustGet("email").(string), ctx.MustGet("login").(string)
 	return entities.AuthorInfo{ID: int(authorId), Login: authorLogin, Email: authorEmail}
+}
+
+func parseNumericQueryParam(ctx *gin.Context, key string, defaultValue int) (value int) {
+	value = defaultValue
+	keyParam, ok := ctx.GetQuery(key)
+	if ok && keyParam != "" {
+		keyInt, err := strconv.Atoi(keyParam)
+		if err != nil {
+			fmt.Println("error while converting " + key + " string to int")
+		} else {
+			value = keyInt
+		}
+	}
+
+	return
 }

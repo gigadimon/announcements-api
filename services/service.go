@@ -6,6 +6,7 @@ import (
 	"mime/multipart"
 	"sync"
 
+	"github.com/lib/pq"
 	"github.com/minio/minio-go/v7"
 )
 
@@ -22,13 +23,16 @@ type Auth interface {
 }
 
 type AnnouncementActions interface {
-	GetList()
-	GetOneById(id string) (*entities.AnnouncementFromDB, error)
-	CreateAnnounce(announcement *entities.InputAnnouncement, author entities.AuthorInfo) (*entities.AnnouncementForDB, error)
-	UpdateAnnounce()
-	HideAnnounce()
-	DeleteAnnounceById(id string) error
-	GetAnnouncePhotosById(id string) ([]string, error)
+	GetList(page int, limit int) ([]*entities.AnnouncementFromDB, error)
+	GetOneById(postId string, userId string) (*entities.AnnouncementFromDB, error)
+	CreateAnnounce(inputAnnouncement *entities.InputAnnouncement, photos entities.PhotosForDB, author entities.AuthorInfo) (*entities.AnnouncementFromDB, error)
+	UpdateAnnounce(inputAnnouncement *entities.InputAnnouncement, postId string) (*entities.AnnouncementFromDB, error)
+	UploadNewAnnouncePhotosById(photos entities.PhotosForDB, postId string) (pq.StringArray, error)
+	DeleteAnnouncePhotoById(postId string, photoName string) (pq.StringArray, error)
+	SwitchAnnounceVisibilityById(postId string) (bool, error)
+	DeleteAnnounceById(postId string) error
+	GetAnnouncePhotosById(postId string) ([]string, error)
+	IsUserAnnounceAuthor(postId string, userId string) (bool, error)
 }
 
 type ObjectStorage interface {

@@ -6,6 +6,7 @@ import (
 	"errors"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
 )
 
 type Authenticator struct {
@@ -21,11 +22,18 @@ type NewUser struct {
 func (a *Authenticator) CreateUser(user *entities.InputSignUpUser) (int, error) {
 	var id int
 	query := `INSERT INTO users (email, login, password) VALUES ($1, $2, $3) RETURNING id`
-
-	row := a.db.QueryRow(query, user.Email, user.Login, user.Password)
-
-	if err := row.Scan(&id); err != nil {
+	rows, err := a.db.Query(query, user.Email, user.Login, user.Password)
+	if err != nil {
+		if pqError, ok := err.(*pq.Error); ok {
+			return 0, errors.New(pqError.Detail)
+		}
 		return 0, err
+	}
+
+	for rows.Next() {
+		if err := rows.Scan(&id); err != nil {
+			return 0, err
+		}
 	}
 
 	return id, nil
