@@ -28,7 +28,12 @@ func main() {
 		log.Fatalf("Connection to database failed: %s", err.Error())
 	}
 
-	service := services.Init(dbClient)
+	minioClient, err := services.NewMinioStorage()
+	if err != nil {
+		log.Fatalf("Connection to object storage failed: %s", err.Error())
+	}
+
+	service := services.Init(services.InitParams{DBClient: dbClient, ObjectStorageClient: minioClient})
 
 	handler := handlers.Init(service)
 

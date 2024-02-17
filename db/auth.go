@@ -4,10 +4,7 @@ import (
 	"announce-api/entities"
 	"database/sql"
 	"errors"
-	"os"
-	"time"
 
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -61,18 +58,15 @@ func (a *Authenticator) UpdateUserToken(user *entities.User, token string) (stri
 	return writtenToken, nil
 }
 
-func (a *Authenticator) GenerateAccessToken(user *entities.User) (string, error) {
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"id":      user.ID,
-		"email":   user.Email,
-		"login":   user.Login,
-		"expires": time.Now().Add(time.Hour * 10).Unix(),
-	})
-
-	tokenStr, err := token.SignedString([]byte(os.Getenv("JWT_SECRET")))
-	if err != nil {
-		return "", err
+func (a *Authenticator) IsTokenExists(token string) (int, error) {
+	var id int
+	selectQuery := "SELECT id FROM users WHERE token=$1"
+	if err := a.db.Get(&id, selectQuery, token); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return 0, errors.New("token invalid")
+		}
+		return 0, errors.New("error while getting info from database: " + err.Error())
 	}
 
-	return tokenStr, nil
+	return id, nil
 }

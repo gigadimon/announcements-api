@@ -27,16 +27,17 @@ type Auth interface {
 	CreateUser(user *entities.InputSignUpUser) (int, error)
 	GetUser(user *entities.InputSignInUser) (*entities.User, error)
 	UpdateUserToken(user *entities.User, token string) (string, error)
-	GenerateAccessToken(user *entities.User) (string, error)
+	IsTokenExists(token string) (int, error)
 }
 
 type AnnouncementActions interface {
 	GetList()
-	GetOneById()
-	CreateAnnounce()
+	GetOneById(id string) (*entities.AnnouncementFromDB, error)
+	CreateAnnounce(announcement *entities.AnnouncementForDB) (int, error)
 	UpdateAnnounce()
 	HideAnnounce()
-	DeleteAnnounce()
+	DeleteAnnounceById(id string) error
+	GetAnnouncePhotosById(id string) ([]string, error)
 }
 
 func newClient(db *sqlx.DB) *DatabaseClient {

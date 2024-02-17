@@ -3,10 +3,11 @@ package services
 import (
 	"announce-api/db"
 	"announce-api/entities"
-	"announce-api/utils"
 	"errors"
-	"regexp"
+	"os"
+	"time"
 
+	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -15,8 +16,8 @@ type Authenticator struct {
 }
 
 func (a *Authenticator) CreateUser(user *entities.InputSignUpUser) (int, error) {
-	if err := utils.ValidateStruct(user); err != nil {
-		return 0, err
+	if err := user.Validate(); err != nil {
+		return 0, errors.New("passed user is incorrect: " + err.Error())
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
@@ -25,10 +26,6 @@ func (a *Authenticator) CreateUser(user *entities.InputSignUpUser) (int, error) 
 	}
 
 	user.Password = string(hashedPassword)
-
-	if err := validateEmail(user.Email); err != nil {
-		return 0, err
-	}
 
 	id, err := a.client.CreateUser(user)
 	if err != nil {
@@ -39,6 +36,10 @@ func (a *Authenticator) CreateUser(user *entities.InputSignUpUser) (int, error) 
 }
 
 func (a *Authenticator) AuthorizeUser(user *entities.InputSignInUser) (string, error) {
+	if err := user.Validate(); err != nil {
+		return "", errors.New("passed user is incorrect: " + err.Error())
+	}
+
 	userFromDb, err := a.client.GetUser(user)
 	if err != nil {
 		return "", err
@@ -48,7 +49,7 @@ func (a *Authenticator) AuthorizeUser(user *entities.InputSignInUser) (string, e
 		return "", errors.New("email or password is incorrect")
 	}
 
-	tokenStr, err := a.client.GenerateAccessToken(userFromDb)
+	tokenStr, err := generateAccessToken(userFromDb)
 	if err != nil {
 		return "", err
 	}
@@ -61,15 +62,26 @@ func (a *Authenticator) AuthorizeUser(user *entities.InputSignInUser) (string, e
 	return token, nil
 }
 
-func validateEmail(input string) error {
-	matched, err := regexp.Match(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9]+\.[a-zA-Z]{2,}$`, []byte(input))
+func (a *Authenticator) IsTokenExists(token string) (int, error) {
+	id, err := a.client.IsTokenExists(token)
 	if err != nil {
-		return err
+		return 0, err
+	}
+	return id, nil
+}
+
+func generateAccessToken(user *entities.User) (string, error) {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"id":      user.ID,
+		"email":   user.Email,
+		"login":   user.Login,
+		"expires": time.Now().Add(time.Hour * 10).Unix(),
+	})
+
+	tokenStr, err := token.SignedString([]byte(os.Getenv("JWT_SECRET")))
+	if err != nil {
+		return "", err
 	}
 
-	if !matched {
-		return errors.New("email is incorrect")
-	}
-
-	return nil
+	return tokenStr, nil
 }

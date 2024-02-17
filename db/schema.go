@@ -15,8 +15,10 @@ CREATE TABLE IF NOT EXISTS announcements (
 	author_login varchar(255) references users (login) on delete cascade not null,
 	author_email varchar(255) references users (email) on delete cascade not null,
 	author_phone varchar(255), 
+	photos       varchar(255)[] default NULL,
 	title        varchar(255) not null,
 	description  text not null,
-	created_at   timestamp not null
+	created_at   timestamp not null,
+	is_hidden    boolean default false
 );
 `

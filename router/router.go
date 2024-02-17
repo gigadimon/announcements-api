@@ -20,6 +20,7 @@ func newRouter(handler *handlers.Handler) *Router {
 
 func Init(handler *handlers.Handler) *gin.Engine {
 	r := newRouter(handler)
+	r.Router.MaxMultipartMemory = 100 << 20
 
 	registerAuthRoutes(r)
 

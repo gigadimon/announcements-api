@@ -1,18 +1,14 @@
 package utils
 
 import (
-	"errors"
-	"reflect"
-
 	"gopkg.in/go-playground/validator.v8"
 )
 
-func ValidateStruct(obj interface{}) error {
-	objType := reflect.TypeOf(obj)
-	if objType.Kind() == reflect.Ptr && objType.Elem().Kind() != reflect.Struct {
-		return errors.New("passed data isn't struct type")
-	}
+type Validate interface {
+	Validate() error
+}
 
+func ValidateStruct(obj Validate) error {
 	config := &validator.Config{TagName: "validate"}
 
 	validate := validator.New(config)

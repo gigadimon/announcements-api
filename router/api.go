@@ -13,10 +13,13 @@ func registerApiRoutes(r *Router) {
 
 func registerAnnouncementsRoutes(r *Router, group *gin.RouterGroup) {
 	announcements := group.Group("/announcements")
+	announcements.Use(r.Handler.Authenticate)
 	{
 		announcements.GET("/", r.Handler.GetAnnouncementList)
-		announcements.POST("/:postId", r.Handler.CreateAnnouncement)
-		announcements.PUT("/:postId", r.Handler.UpdateAnnouncement)
+		announcements.GET("/:postId", r.Handler.GetAnnouncementById)
+		announcements.POST("/", r.Handler.CreateAnnouncement)
+		announcements.PATCH("/:postId", r.Handler.UpdateAnnouncement)
 		announcements.DELETE("/:postId", r.Handler.DeleteAnnouncement)
 	}
+
 }
