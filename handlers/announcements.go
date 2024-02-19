@@ -80,6 +80,10 @@ func (h *Handler) DeleteAnnouncePhotoById(ctx *gin.Context) {
 
 	updatedPhotos, err := h.service.DeleteAnnouncePhotoById(postId, photoName)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			utils.SendErrorResponse(ctx, http.StatusNotFound, "announce id "+postId+" doesn't exists")
+			return
+		}
 		utils.SendErrorResponse(ctx, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -105,6 +109,10 @@ func (h *Handler) GetAnnouncementById(ctx *gin.Context) {
 
 	announcement, err := h.service.GetOneById(postId, fmt.Sprint(userId))
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			utils.SendErrorResponse(ctx, http.StatusNotFound, "announce with id "+postId+" not found")
+			return
+		}
 		utils.SendErrorResponse(ctx, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -151,6 +159,9 @@ func (h *Handler) DeleteAnnouncementById(ctx *gin.Context) {
 
 	photos, err := h.service.GetAnnouncePhotosById(postId)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			utils.SendErrorResponse(ctx, http.StatusNotFound, "announce with id "+postId+" not found")
+		}
 		utils.SendErrorResponse(ctx, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -161,7 +172,7 @@ func (h *Handler) DeleteAnnouncementById(ctx *gin.Context) {
 
 	if err := h.service.DeleteAnnounceById(postId); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			utils.SendErrorResponse(ctx, http.StatusNotFound, "announce with passed id not found")
+			utils.SendErrorResponse(ctx, http.StatusNotFound, "announce with id "+postId+" not found")
 			return
 		}
 

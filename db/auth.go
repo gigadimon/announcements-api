@@ -41,12 +41,9 @@ func (a *Authenticator) CreateUser(user *entities.InputSignUpUser) (int, error) 
 
 func (a *Authenticator) GetUser(user *entities.InputSignInUser) (*entities.User, error) {
 	userFromDb := new(entities.User)
-	selectQuery := "SELECT id, email, login, password FROM users WHERE email=$1"
+	selectQuery := "SELECT id, email, login, password FROM users WHERE login=$1"
 
-	if err := a.db.Get(userFromDb, selectQuery, user.Email); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return new(entities.User), errors.New("user with passed email doesn't exists")
-		}
+	if err := a.db.Get(userFromDb, selectQuery, user.Login); err != nil {
 		return new(entities.User), errors.New("error while getting info from database: " + err.Error())
 	}
 
@@ -54,9 +51,9 @@ func (a *Authenticator) GetUser(user *entities.InputSignInUser) (*entities.User,
 }
 
 func (a *Authenticator) UpdateUserToken(user *entities.User, token string) (string, error) {
-	updateQuery := `UPDATE users SET token=$1 WHERE email=$2 RETURNING token`
+	updateQuery := `UPDATE users SET token=$1 WHERE login=$2 RETURNING token`
 
-	row := a.db.QueryRow(updateQuery, token, user.Email)
+	row := a.db.QueryRow(updateQuery, token, user.Login)
 
 	var writtenToken string
 	if err := row.Scan(&writtenToken); err != nil {

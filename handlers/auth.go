@@ -3,6 +3,8 @@ package handlers
 import (
 	"announce-api/entities"
 	"announce-api/utils"
+	"database/sql"
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -18,6 +20,10 @@ func (h *Handler) SignIn(ctx *gin.Context) {
 
 	token, err := h.service.AuthorizeUser(user)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			utils.SendErrorResponse(ctx, http.StatusNotFound, "user with passed login doesn't exists")
+			return
+		}
 		utils.SendErrorResponse(ctx, http.StatusBadRequest, err.Error())
 		return
 	}

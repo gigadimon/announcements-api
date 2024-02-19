@@ -20,7 +20,7 @@ type InputSignUpUser struct {
 }
 
 type InputSignInUser struct {
-	Email    string `json:"email" validate:"required,email"`
+	Login    string `json:"login" validate:"required"`
 	Password string `json:"password" validate:"required"`
 }
 

@@ -42,9 +42,6 @@ func (m *AnnouncementManager) GetOneById(postId string, userId string) (*entitie
 
 	row := m.db.QueryRowx(query, postId, userId)
 	if err := row.StructScan(announcement); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return new(entities.AnnouncementFromDB), errors.New("announce with id " + postId + " not found")
-		}
 		return new(entities.AnnouncementFromDB), err
 	}
 	return announcement, nil
@@ -84,9 +81,6 @@ func (m *AnnouncementManager) DeleteAnnounceById(id string) error {
 
 	_, err := m.db.Query(query, id)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return errors.New("announce with passed id not found")
-		}
 		return err
 	}
 	return nil
@@ -96,7 +90,7 @@ func (m *AnnouncementManager) GetAnnouncePhotosById(id string) ([]string, error)
 	var photos pq.StringArray
 	query := `SELECT photos FROM announcements WHERE id=$1`
 
-	row := m.db.QueryRowx(query, id)
+	row := m.db.QueryRow(query, id)
 	err := row.Scan(&photos)
 
 	return photos, err
@@ -125,10 +119,6 @@ func (m *AnnouncementManager) DeleteAnnouncePhotoById(postId string, photoName s
 	photoPath := fmt.Sprint("/announcements/" + photoName)
 	row := m.db.QueryRow(query, photoPath, postId)
 	if err := row.Scan(&updatedPhotos); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return updatedPhotos, errors.New("announce id " + postId + " doesn't exists")
-		}
-
 		return updatedPhotos, err
 	}
 

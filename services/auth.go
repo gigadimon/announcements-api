@@ -46,7 +46,7 @@ func (a *Authenticator) AuthorizeUser(user *entities.InputSignInUser) (string, e
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(userFromDb.Password), []byte(user.Password)); err != nil {
-		return "", errors.New("email or password is incorrect")
+		return "", errors.New("login or password is incorrect")
 	}
 
 	tokenStr, err := generateAccessToken(userFromDb)

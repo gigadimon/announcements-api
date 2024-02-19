@@ -1,0 +1,500 @@
+openapi: 3.0.0
+info: 
+  title: Announcements API documentation
+  version: 1.0.0
+servers: 
+  - url: http://localhost:8080
+paths:
+  /auth/signup:
+    post: 
+      tags:
+      - Auth
+      description: Creates new user
+      summary: User's registration
+      requestBody: 
+        description: User for creating
+        content: 
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InputSignUpUser'
+        required: true
+      responses:
+        "201": 
+          description: User created successfully
+          content: 
+            application/json: 
+              schema: 
+                type: object
+                properties:
+                  message: 
+                    type: string
+                  userId: 
+                    type: integer
+                    format: int32
+                example:
+                  message: user created
+                  userId: 777
+        default:
+          description: User creating failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+                
+  /auth/signin:
+    post: 
+      tags:
+      - Auth
+      description: Authenticate user. Generate and return access token for user
+      summary: User's authentication
+      requestBody: 
+        description: User for authentication
+        content: 
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InputSignInUser'
+        required: true
+      responses:
+        "200": 
+          description: Passed credential is valid
+          content: 
+            application/json: 
+              schema: 
+                type: object
+                properties:
+                  token: 
+                    type: string
+                    format: jwt
+                    example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+        "404":
+          $ref: '#/components/responses/UserNotFound'
+        default:
+          description: User authorization failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  
+  /api/announcements:
+    get:
+      tags:
+        - Api
+      description: Getting announcements list in created_at order (new ones first)
+      summary: Get announcements list
+      security: 
+        - BearerToken: []
+      parameters:
+        - name: page
+          in: query
+          description: "If not passed - default value is 1"
+          required: false
+          schema:
+            type: integer
+            format: int32
+            example: 1
+        - name: limit
+          in: query
+          description: "If not passed - default value is 20"
+          required: false
+          schema:
+            type: integer
+            format: int32
+            example: 20
+      responses:
+        "200":
+          description: Announcements list recieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: 
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AnnouncementFromDB'
+        "401": 
+          $ref: '#/components/responses/Unauthorized'
+        default:
+          $ref: '#/components/responses/GeneralError'
+    post:
+      tags:
+        - Api
+      summary: Create new announcement
+      security: 
+        - BearerToken: []
+      requestBody:
+        $ref: '#/components/requestBodies/InputAnnouncement'
+      responses:
+        "201":
+          description: Announcement successfully created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: 
+                    $ref: '#/components/schemas/AnnouncementFromDB'
+                  message:  
+                    type: string
+                    example: "announcement created"
+        "401": 
+          $ref: '#/components/responses/Unauthorized'
+        default:
+          $ref: '#/components/responses/GeneralError'
+  
+  /api/announcements/{postId}:
+    get:
+      tags:
+        - Api
+      description: Returns announcement by id if found. <b>If the announcement is hidden then you need to be the author of this announcement to get it</b>
+      summary: Get an announcement by id
+      security: 
+        - BearerToken: []
+      parameters: 
+        - $ref: '#/components/parameters/PostId'
+      responses:
+        "200": 
+          description: Announcement by id was found and returned
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: 
+                    $ref: '#/components/schemas/AnnouncementFromDB'
+        "404":
+          $ref: '#/components/responses/AnnouncementNotFound'  
+        default:
+          $ref: '#/components/responses/GeneralError'  
+    put:
+      tags:
+        - Api with only by author access
+      summary: Update announcement
+      security: 
+        - BearerToken: []
+      parameters: 
+        - $ref: '#/components/parameters/PostId'
+      requestBody:
+        $ref: '#/components/requestBodies/InputAnnouncement'
+      responses:
+        "200": 
+          description: Announcement was updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: 
+                    $ref: '#/components/schemas/AnnouncementFromDB'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/AnnouncementNotFound'
+        default:
+          $ref: '#/components/responses/GeneralError'  
+    delete:
+      tags:
+        - Api with only by author access
+      summary: Delete announcement
+      security: 
+        - BearerToken: []
+      parameters: 
+        - $ref: '#/components/parameters/PostId'
+      responses:
+        "200": 
+          description: Announcement was deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: 
+                    type: string
+                    example: "announce with id: 123 deleted"
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/AnnouncementNotFound'
+        default:
+          $ref: '#/components/responses/GeneralError'
+          
+  /api/announcements/{postId}/switch-visibility:
+    get:
+      tags:
+        - Api with only by author access
+      summary: Hide/unhide announcement
+      security: 
+        - BearerToken: []
+      parameters: 
+        - $ref: '#/components/parameters/PostId'
+      responses:
+        "200": 
+          description: Announcement's visibility switched successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  is_hidden: 
+                    type: boolean
+                    example: true
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/AnnouncementNotFound'
+        default:
+          $ref: '#/components/responses/GeneralError'
+  /api/announcements/{postId}/photos:
+    patch:
+      tags:
+        - Api with only by author access
+      summary: Upload new announcement's photos
+      security: 
+        - BearerToken: []
+      parameters: 
+        - $ref: '#/components/parameters/PostId'
+      requestBody:
+        description: New photos. <b>Array of files</b>
+        content: 
+          multipart/form-data:
+            schema:
+              description: Array of files
+              type: array
+              items:
+                type: string
+                format: binary
+        required: true
+      responses:
+        "200": 
+          description: New photos added successfully. Returns updated array of announcement's photos. 
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: 
+                    type: array
+                    items: 
+                      type: string
+                      format: photoPath
+                      example: '/announcements/fe7cbf29-0925-4b4b-844d-ae1640db4477.png'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/AnnouncementNotFound'
+        default:
+          $ref: '#/components/responses/GeneralError'
+  /api/announcements/{postId}/photos/{photoName}:
+    delete:
+      tags:
+        - Api with only by author access
+      summary: Delete one photo from announcement
+      security: 
+        - BearerToken: []
+      parameters: 
+        - $ref: '#/components/parameters/PostId'
+        - name: photoName
+          in: path
+          required: true
+          schema: 
+            type: string
+            format: fileName
+            example: "fe7cbf29-0925-4b4b-844d-ae1640db4477.png"
+      responses:
+        "200": 
+          description: Photo with passed name deleted successfully. Returns updated array of announcement's photos. 
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: 
+                    type: array
+                    items: 
+                      type: string
+                      format: photoPath
+                      example: '/announcements/fe7cbf29-0925-4b4b-844d-ae1640db4477.png'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/AnnouncementNotFound'
+        default:
+          $ref: '#/components/responses/GeneralError'
+            
+                    
+components:
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        error: 
+          type: string
+          example: some error text
+    InputSignUpUser:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        login:
+          type: string
+        password:
+          type: string
+          format: password
+      required:
+        - email
+        - login
+        - password
+      example:
+        email: gigadimon@gmail.com
+        login: gigadimon
+        password: qwerty123456
+    InputSignInUser:
+      type: object
+      properties:
+        login:
+          type: string
+        password:
+          type: string
+          format: password
+      required:
+        - login
+        - password
+      example:
+        login: gigadimon
+        password: qwerty123456
+    AnnouncementFromDB:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          minimum: 1
+        author_id:
+          type: integer
+          format: int64
+          minimum: 1
+        author_login:
+          type: string
+        author_email:
+          type: string
+          format: email
+        author_phone:
+          type: string
+          format: phone
+        title:
+          type: string
+        photos:
+          type: array
+          items: 
+            type: string
+            format: photoPath
+        description:
+          type: string
+        created_at:
+          type: string
+          format: date
+        is_hidden:
+          type: boolean
+      example:
+        id: 1
+        author_id: 1
+        author_login: gigadimon
+        author_email: gigadimon@gmail.com
+        author_phone: +380990000000
+        title: example title
+        photos: ['/announcements/0fbd4e55-df3a-4591-a410-0aaefde4900c.png',
+                 '/announcements/fe7cbf29-0925-4b4b-844d-ae1640db4477.png']
+        description: some example description
+        created_at: 2024-02-19T01:00:34.410008Z
+        is_hidden: false
+    InputAnnouncement:
+      type: object
+      properties: 
+        title:
+          type: string
+        description:
+          type: string
+        author_phone:
+          type: string
+          format: phone
+      required:
+        - title
+        - description
+      example: 
+        title: example title
+        description: example description
+        author_phone: +3809900000000
+          
+  securitySchemes:
+    BearerToken:
+      type: http
+      scheme: bearer
+      bearerFormat: jwt
+      
+  parameters:
+    PostId:
+      name: postId
+      in: path
+      description: Announcement's id
+      required: true
+      schema:
+        type: integer
+        format: int64
+        example: 123
+        
+  requestBodies:
+    InputAnnouncement:
+      content: 
+        application/json:
+          schema:
+            $ref: '#/components/schemas/InputAnnouncement'
+      required: true
+  
+  responses:
+    GeneralError:
+      description: Some failure of request
+      content: 
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: User unauthorized failure
+      content: 
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: 'not authorized: token invalid'     
+    Forbidden:
+      description: User isn't announcement author
+      content: 
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: "you are not announcement's author"  
+    AnnouncementNotFound:
+      description: Announcement not found by passed id
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error: 
+                type: string
+                example: announce with id 123 not found
+    UserNotFound:
+      description: User not found by passed login
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error: 
+                type: string
+                example: "user with passed login doesn't exists"
