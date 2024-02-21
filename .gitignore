@@ -1,2 +1,5 @@
 .vscode
 .env
+pg_data
+minio_data
+docker-compose.yml
