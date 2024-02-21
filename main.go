@@ -15,7 +15,7 @@ import (
 func main() {
 	dbConfig := db.Config{
 		Driver:   "postgres",
-		Host:     "localhost",
+		Host:     os.Getenv("PG_HOST"),
 		Port:     os.Getenv("PG_PORT"),
 		DBName:   "announcements",
 		User:     "postgres",

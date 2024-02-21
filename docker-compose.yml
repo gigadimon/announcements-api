@@ -1,0 +1,84 @@
+services:
+  app:
+    build: .
+    container_name: app
+    hostname: app
+    restart: unless-stopped
+    environment:
+      PORT: ${PORT}
+      PG_HOST: ${PG_HOST}
+      PG_PORT: ${PG_PORT}
+      PG_PASSWD: ${PG_PASSWD}
+      JWT_SECRET: ${JWT_SECRET}
+      MIN_IO_HOST: ${MIN_IO_HOST}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    ports: 
+      - ${PORT}:${PORT}
+    networks:
+      - default
+    depends_on:
+       data-base:
+          condition: service_healthy
+    entrypoint: "./main"
+  data-base:
+    image: postgres:alpine
+    container_name: postgres
+    hostname: postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${PROJECT_NAME}
+      POSTGRES_PASSWORD: ${PG_PASSWD}
+    volumes:
+      - ./pg_data:/var/lib/postgresql/data
+    networks:
+      - default
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  minio:
+    image: quay.io/minio/minio
+    container_name: minio
+    hostname: minio
+    restart: unless-stopped
+    volumes:
+      - ./minio_data:/data
+    ports:
+      - 9000:9000
+      - 9001:9001
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    command: server /data --console-address ":9001"
+  createbuckets:
+    image: minio/mc
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc config host add myminio http://${MIN_IO_HOST} ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD};
+      /usr/bin/mc mb myminio/${PROJECT_NAME};
+      /usr/bin/mc anonymous set download myminio/${PROJECT_NAME};
+      exit 0;
+      "
+  swagger:
+    image: swaggerapi/swagger-ui
+    container_name: swagger
+    hostname: swagger
+    restart: unless-stopped
+    environment:
+      SWAGGER_JSON: "/foo/openapi.yml"
+    ports: 
+      - 8081:8080
+    volumes:
+      - ./openapi.yml:/foo/openapi.yml
+
+
+networks:
+  default:
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.28.0.0/16

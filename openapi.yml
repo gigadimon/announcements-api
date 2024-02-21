@@ -3,7 +3,7 @@ info:
   title: Announcements API documentation
   version: 1.0.0
 servers: 
-  - url: http://localhost:8080
+  - url: https://announcements.gigadimon.ovh
 paths:
   /auth/signup:
     post: 
@@ -75,31 +75,17 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
   
-  /api/announcements:
+  /api/feed:
     get:
       tags:
         - Api
-      description: Getting announcements list in created_at order (new ones first)
-      summary: Get announcements list
+      description: Getting global feed in created_at order (new ones first)
+      summary: Get global feed
       security: 
         - BearerToken: []
       parameters:
-        - name: page
-          in: query
-          description: "If not passed - default value is 1"
-          required: false
-          schema:
-            type: integer
-            format: int32
-            example: 1
-        - name: limit
-          in: query
-          description: "If not passed - default value is 20"
-          required: false
-          schema:
-            type: integer
-            format: int32
-            example: 20
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
       responses:
         "200":
           description: Announcements list recieved
@@ -123,7 +109,7 @@ paths:
       security: 
         - BearerToken: []
       requestBody:
-        $ref: '#/components/requestBodies/InputAnnouncement'
+        $ref: '#/components/requestBodies/InputAnnouncementWithFiles'
       responses:
         "201":
           description: Announcement successfully created
@@ -142,7 +128,35 @@ paths:
         default:
           $ref: '#/components/responses/GeneralError'
   
-  /api/announcements/{postId}:
+  /api/my-posts:
+    get:
+      tags:
+        - Api
+      description: Getting user's announcements list in created_at order (new ones first) by his access token
+      summary: Get own announcements list
+      security: 
+        - BearerToken: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Limit'
+      responses:
+        "200":
+          description: Announcements list recieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: 
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AnnouncementFromDB'
+        "401": 
+          $ref: '#/components/responses/Unauthorized'
+        default:
+          $ref: '#/components/responses/GeneralError'
+  
+  /api/{postId}:
     get:
       tags:
         - Api
@@ -175,7 +189,7 @@ paths:
       parameters: 
         - $ref: '#/components/parameters/PostId'
       requestBody:
-        $ref: '#/components/requestBodies/InputAnnouncement'
+        $ref: '#/components/requestBodies/InputAnnouncementOnlyAppJson'
       responses:
         "200": 
           description: Announcement was updated successfully
@@ -218,7 +232,7 @@ paths:
         default:
           $ref: '#/components/responses/GeneralError'
           
-  /api/announcements/{postId}/switch-visibility:
+  /api/{postId}/switch-visibility:
     get:
       tags:
         - Api with only by author access
@@ -244,7 +258,7 @@ paths:
           $ref: '#/components/responses/AnnouncementNotFound'
         default:
           $ref: '#/components/responses/GeneralError'
-  /api/announcements/{postId}/photos:
+  /api/{postId}/photos:
     patch:
       tags:
         - Api with only by author access
@@ -254,15 +268,15 @@ paths:
       parameters: 
         - $ref: '#/components/parameters/PostId'
       requestBody:
-        description: New photos. <b>Array of files</b>
+        description: New photos. <b>Array of files</b>. In Swagger is only allowed to upload 1 file for a time, but when requesting the API you can upload several photos at a time in files field
         content: 
           multipart/form-data:
             schema:
-              description: Array of files
-              type: array
-              items:
-                type: string
-                format: binary
+              type: object
+              properties:
+                files:
+                  type: string
+                  format: binary
         required: true
       responses:
         "200": 
@@ -284,7 +298,7 @@ paths:
           $ref: '#/components/responses/AnnouncementNotFound'
         default:
           $ref: '#/components/responses/GeneralError'
-  /api/announcements/{postId}/photos/{photoName}:
+  /api/{postId}/photos/{photoName}:
     delete:
       tags:
         - Api with only by author access
@@ -293,13 +307,7 @@ paths:
         - BearerToken: []
       parameters: 
         - $ref: '#/components/parameters/PostId'
-        - name: photoName
-          in: path
-          required: true
-          schema: 
-            type: string
-            format: fileName
-            example: "fe7cbf29-0925-4b4b-844d-ae1640db4477.png"
+        - $ref: '#/components/parameters/PhotoName'
       responses:
         "200": 
           description: Photo with passed name deleted successfully. Returns updated array of announcement's photos. 
@@ -442,13 +450,65 @@ components:
         type: integer
         format: int64
         example: 123
+    Page:
+      name: page
+      in: query
+      description: "If not passed - default value is 1"
+      required: false
+      schema:
+        type: integer
+        format: int32
+        example: 1
+    Limit:
+      name: limit
+      in: query
+      description: "If not passed - default value is 20"
+      required: false
+      schema:
+        type: integer
+        format: int32
+        example: 20
+    PhotoName:
+      name: photoName
+      in: path
+      required: true
+      schema: 
+        type: string
+        format: fileName
+        example: "fe7cbf29-0925-4b4b-844d-ae1640db4477.png"
         
   requestBodies:
-    InputAnnouncement:
+    InputAnnouncementOnlyAppJson:
       content: 
         application/json:
           schema:
             $ref: '#/components/schemas/InputAnnouncement'
+      required: true
+    InputAnnouncementWithFiles:
+      description: In Swagger is only allowed to upload 1 file for a time, but when requesting the API you can upload several photos at a time in files field
+      content: 
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                author_phone:
+                  type: string
+                  format: phone
+                files:
+                  type: string
+                  format: binary
+              required: 
+                - title
+                - description
+              example: 
+                title: example title
+                description: example description
+                author_phone: +380990000000
+                files: SomeFile.jpeg
       required: true
   
   responses:
