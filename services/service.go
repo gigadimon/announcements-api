@@ -38,7 +38,7 @@ type AnnouncementActions interface {
 
 type ObjectStorage interface {
 	CreateObject(bucketName string, fileExt string, fileToUpload multipart.File, size int64) (minio.UploadInfo, error)
-	DeleteObject(photoPath string) error
+	DeleteObject(bucketName string, photoName string) error
 	СreatePhotoObjectFromFile(bucketName string, file *multipart.FileHeader, photos chan string, wg *sync.WaitGroup)
 	CreateListOfPhotos(files []*multipart.FileHeader) (photos []string)
 }

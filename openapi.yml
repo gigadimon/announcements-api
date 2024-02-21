@@ -1,6 +1,9 @@
 openapi: 3.0.0
 info: 
-  title: Announcements API documentation
+  title: Announcements API specification
+  description: "API that you can use for creating, storing and sharing announcement  
+  
+  To access static files use <b>/static/{fileName}</b> path"
   version: 1.0.0
 servers: 
   - url: https://announcements.gigadimon.ovh
@@ -102,7 +105,7 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         default:
           $ref: '#/components/responses/GeneralError'
-  /api/:
+  /api:
     post:
       tags:
         - Api
@@ -291,8 +294,8 @@ paths:
                     type: array
                     items: 
                       type: string
-                      format: photoPath
-                      example: '/announcements/fe7cbf29-0925-4b4b-844d-ae1640db4477.png'
+                      format: photoName
+                      example: 'fe7cbf29-0925-4b4b-844d-ae1640db4477.png'
         "403":
           $ref: '#/components/responses/Forbidden'
         "404":
@@ -412,8 +415,8 @@ components:
         author_email: gigadimon@gmail.com
         author_phone: +380990000000
         title: example title
-        photos: ['/announcements/0fbd4e55-df3a-4591-a410-0aaefde4900c.png',
-                 '/announcements/fe7cbf29-0925-4b4b-844d-ae1640db4477.png']
+        photos: ['0fbd4e55-df3a-4591-a410-0aaefde4900c.png',
+                 'fe7cbf29-0925-4b4b-844d-ae1640db4477.png']
         description: some example description
         created_at: 2024-02-19T01:00:34.410008Z
         is_hidden: false

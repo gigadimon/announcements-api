@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -182,7 +183,7 @@ func (h *Handler) DeleteAnnouncementById(ctx *gin.Context) {
 	}
 
 	for _, photo := range photos {
-		go h.service.ObjectStorage.DeleteObject(photo)
+		go h.service.ObjectStorage.DeleteObject(os.Getenv("PROJECT_NAME"), photo)
 	}
 
 	if err := h.service.DeleteAnnounceById(postId); err != nil {

@@ -2,12 +2,9 @@ package services
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"mime/multipart"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 
 	"github.com/google/uuid"
@@ -34,12 +31,7 @@ func (m *Minio) CreateObject(bucketName string, fileExt string, fileToUpload mul
 	return m.client.PutObject(context.Background(), bucketName, generateFilename(fileExt), fileToUpload, size, minio.PutObjectOptions{})
 }
 
-func (m *Minio) DeleteObject(photoPath string) error {
-	photoParts, err := parsePhotoPath(photoPath)
-	if err != nil {
-		return err
-	}
-	bucketName, photoName := photoParts[0], photoParts[1]
+func (m *Minio) DeleteObject(bucketName string, photoName string) error {
 	if err := m.client.RemoveObject(context.Background(), bucketName, photoName, minio.RemoveObjectOptions{}); err != nil {
 		return err
 	}
@@ -62,7 +54,7 @@ func (m *Minio) СreatePhotoObjectFromFile(bucketName string, file *multipart.Fi
 		return
 	}
 
-	photos <- fmt.Sprintf("/%s/%s", bucketName, ui.Key)
+	photos <- ui.Key
 }
 
 func (m *Minio) CreateListOfPhotos(files []*multipart.FileHeader) (photos []string) {
@@ -86,13 +78,4 @@ func (m *Minio) CreateListOfPhotos(files []*multipart.FileHeader) (photos []stri
 
 func generateFilename(fileExt string) string {
 	return uuid.NewString() + fileExt
-}
-
-func parsePhotoPath(path string) ([2]string, error) {
-	photoParts := strings.Split(path, "/")
-	if len(photoParts) != 3 {
-		return [2]string{}, errors.New("photo path is incorrect")
-	}
-
-	return [2]string{photoParts[1], photoParts[2]}, nil
 }
