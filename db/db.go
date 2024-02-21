@@ -31,7 +31,8 @@ type Auth interface {
 }
 
 type AnnouncementActions interface {
-	GetList(page int, limit int) ([]*entities.AnnouncementFromDB, error)
+	GetGlobalFeed(page int, limit int) ([]*entities.AnnouncementFromDB, error)
+	GetAuthorsList(page int, limit int, authorId int) ([]*entities.AnnouncementFromDB, error)
 	GetOneById(postId string, userId string) (*entities.AnnouncementFromDB, error)
 	CreateAnnounce(announcement *entities.AnnouncementToDB) (*entities.AnnouncementFromDB, error)
 	UpdateAnnounceById(inputAnnouncement *entities.InputAnnouncement, postId string) (*entities.AnnouncementFromDB, error)

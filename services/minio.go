@@ -25,7 +25,7 @@ const (
 
 func NewMinioStorage() (*minio.Client, error) {
 	return minio.New(os.Getenv("MIN_IO_HOST"), &minio.Options{
-		Creds:  credentials.NewStaticV4(os.Getenv("MIN_IO_ACCESS_KEY_ID"), os.Getenv("MIN_IO_ACCESS_KEY_SECRET"), ""),
+		Creds:  credentials.NewStaticV4(os.Getenv("MINIO_ROOT_USER"), os.Getenv("MINIO_ROOT_PASSWORD"), ""),
 		Secure: false,
 	})
 }

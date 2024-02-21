@@ -14,11 +14,18 @@ type AnnouncementManager struct {
 	db *sqlx.DB
 }
 
-func (m *AnnouncementManager) GetList(page int, limit int) ([]*entities.AnnouncementFromDB, error) {
+func (m *AnnouncementManager) GetGlobalFeed(page int, limit int) ([]*entities.AnnouncementFromDB, error) {
 	announcementsList := make([]*entities.AnnouncementFromDB, 0)
 	query := `SELECT * FROM announcements WHERE is_hidden=false ORDER BY created_at DESC OFFSET $1 ROWS FETCH NEXT $2 ROWS ONLY`
 
 	return announcementsList, m.db.Select(&announcementsList, query, (page-1)*limit, limit)
+}
+
+func (m *AnnouncementManager) GetAuthorsList(page int, limit int, authorId int) ([]*entities.AnnouncementFromDB, error) {
+	announcementsList := make([]*entities.AnnouncementFromDB, 0)
+	query := `SELECT * FROM announcements WHERE author_id=$1 ORDER BY created_at DESC OFFSET $2 ROWS FETCH NEXT $3 ROWS ONLY`
+
+	return announcementsList, m.db.Select(&announcementsList, query, authorId, (page-1)*limit, limit)
 }
 
 func (m *AnnouncementManager) SwitchAnnounceVisibilityById(postId string) (bool, error) {

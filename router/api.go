@@ -1,32 +1,22 @@
 package router
 
-import (
-	"github.com/gin-gonic/gin"
-)
-
 func registerApiRoutes(r *Router) {
 	api := r.Router.Group("/api")
+	api.Use(r.Handler.Authenticate)
 	{
-		registerAnnouncementsRoutes(r, api)
-	}
-}
+		api.GET("/feed", r.Handler.GetGlobalFeed)
+		api.GET("/my-posts", r.Handler.GetAuthorsAnnouncementList)
+		api.GET("/:postId", r.Handler.GetAnnouncementById)
+		api.POST("/", r.Handler.CreateAnnouncement)
 
-func registerAnnouncementsRoutes(r *Router, group *gin.RouterGroup) {
-	announcements := group.Group("/announcements")
-	announcements.Use(r.Handler.Authenticate)
-	{
-		announcements.GET("/", r.Handler.GetAnnouncementList)
-		announcements.GET("/:postId", r.Handler.GetAnnouncementById)
-		announcements.POST("/", r.Handler.CreateAnnouncement)
-
-		announcementsWithOnlyByAuthorAccess := announcements.Group("/")
-		announcementsWithOnlyByAuthorAccess.Use(r.Handler.IsUserAnnounceAuthor)
+		apiWithOnlyByAuthorAccess := api.Group("/")
+		apiWithOnlyByAuthorAccess.Use(r.Handler.IsUserAnnounceAuthor)
 		{
-			announcementsWithOnlyByAuthorAccess.PUT("/:postId", r.Handler.UpdateAnnouncementById)
-			announcementsWithOnlyByAuthorAccess.DELETE("/:postId", r.Handler.DeleteAnnouncementById)
-			announcementsWithOnlyByAuthorAccess.GET("/:postId/switch-visibility", r.Handler.SwitchAnnounceVisibilityById)
+			apiWithOnlyByAuthorAccess.PUT("/:postId", r.Handler.UpdateAnnouncementById)
+			apiWithOnlyByAuthorAccess.DELETE("/:postId", r.Handler.DeleteAnnouncementById)
+			apiWithOnlyByAuthorAccess.GET("/:postId/switch-visibility", r.Handler.SwitchAnnounceVisibilityById)
 
-			announcePhotos := announcementsWithOnlyByAuthorAccess.Group("/:postId/photos")
+			announcePhotos := apiWithOnlyByAuthorAccess.Group("/:postId/photos")
 			{
 				announcePhotos.PATCH("/", r.Handler.UploadNewAnnouncePhotosById)
 				announcePhotos.DELETE("/:photoName", r.Handler.DeleteAnnouncePhotoById)

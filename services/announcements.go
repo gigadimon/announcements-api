@@ -12,8 +12,12 @@ type AnnouncementManager struct {
 	client *db.DatabaseClient
 }
 
-func (m *AnnouncementManager) GetList(page int, limit int) ([]*entities.AnnouncementFromDB, error) {
-	return m.client.GetList(page, limit)
+func (m *AnnouncementManager) GetGlobalFeed(page int, limit int) ([]*entities.AnnouncementFromDB, error) {
+	return m.client.GetGlobalFeed(page, limit)
+}
+
+func (m *AnnouncementManager) GetAuthorsList(page int, limit int, authorId int) ([]*entities.AnnouncementFromDB, error) {
+	return m.client.GetAuthorsList(page, limit, authorId)
 }
 
 func (m *AnnouncementManager) GetOneById(postId string, userId string) (*entities.AnnouncementFromDB, error) {

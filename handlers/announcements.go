@@ -13,12 +13,30 @@ import (
 	"github.com/lib/pq"
 )
 
-func (h *Handler) GetAnnouncementList(ctx *gin.Context) {
+func (h *Handler) GetGlobalFeed(ctx *gin.Context) {
 	page := parseNumericQueryParam(ctx, "page", 1)
 	limit := parseNumericQueryParam(ctx, "limit", 20)
 
-	announcementsList, err := h.service.GetList(page, limit)
+	announcementsList, err := h.service.GetGlobalFeed(page, limit)
 	if err != nil {
+		utils.SendErrorResponse(ctx, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"data": announcementsList})
+}
+
+func (h *Handler) GetAuthorsAnnouncementList(ctx *gin.Context) {
+	page := parseNumericQueryParam(ctx, "page", 1)
+	limit := parseNumericQueryParam(ctx, "limit", 20)
+	authorId := ctx.MustGet("id").(float64)
+
+	announcementsList, err := h.service.GetAuthorsList(page, limit, int(authorId))
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			utils.SendErrorResponse(ctx, http.StatusNotFound, fmt.Sprintf("announcements for author id: %s not found", fmt.Sprint(authorId)))
+			return
+		}
 		utils.SendErrorResponse(ctx, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -122,8 +140,9 @@ func (h *Handler) GetAnnouncementById(ctx *gin.Context) {
 
 func (h *Handler) CreateAnnouncement(ctx *gin.Context) {
 	inputAnnouncement := new(entities.InputAnnouncement)
-	// Парсим форму... !!!Проблема при отправке файлов на 250кбайт+
+	// Парсим форму... !!!Проблема при отправке файлов на 250кбайт+, крашится соединение
 	form, err := ctx.MultipartForm()
+
 	if err != nil {
 		utils.SendErrorResponse(ctx, http.StatusBadRequest, "parsing form data failed: "+err.Error())
 		return
