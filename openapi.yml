@@ -3,7 +3,7 @@ info:
   title: Announcements API specification
   description: "API that you can use for creating, storing and sharing announcement  
   
-  To access static files use <b>/static/{fileName}</b> path"
+  To access photos use <b>/photos/{fileName}</b> path"
   version: 1.0.0
 servers: 
   - url: https://announcements.gigadimon.ovh
