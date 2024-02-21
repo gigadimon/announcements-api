@@ -102,6 +102,7 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         default:
           $ref: '#/components/responses/GeneralError'
+  /api/:
     post:
       tags:
         - Api
