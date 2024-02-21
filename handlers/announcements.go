@@ -100,7 +100,7 @@ func (h *Handler) DeleteAnnouncePhotoById(ctx *gin.Context) {
 	updatedPhotos, err := h.service.DeleteAnnouncePhotoById(postId, photoName)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			utils.SendErrorResponse(ctx, http.StatusNotFound, "announce id "+postId+" doesn't exists")
+			utils.SendErrorResponse(ctx, http.StatusNotFound, fmt.Sprintf("photo %s doesn't exist in post id %s", photoName, postId))
 			return
 		}
 		utils.SendErrorResponse(ctx, http.StatusBadRequest, err.Error())

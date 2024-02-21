@@ -105,7 +105,7 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         default:
           $ref: '#/components/responses/GeneralError'
-  /api:
+  /api/:
     post:
       tags:
         - Api
@@ -325,11 +325,11 @@ paths:
                     items: 
                       type: string
                       format: photoPath
-                      example: '/announcements/fe7cbf29-0925-4b4b-844d-ae1640db4477.png'
+                      example: 'fe7cbf29-0925-4b4b-844d-ae1640db4477.png'
         "403":
           $ref: '#/components/responses/Forbidden'
         "404":
-          $ref: '#/components/responses/AnnouncementNotFound'
+          $ref: '#/components/responses/PhotoNotFoundByPostId'
         default:
           $ref: '#/components/responses/GeneralError'
             
@@ -552,6 +552,16 @@ components:
               error: 
                 type: string
                 example: announce with id 123 not found
+    PhotoNotFoundByPostId:
+      description: Photo not found by passed id
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: photo 96fa72ee-8708-4758-b8d9-2af77c676768.jpg doesn't exist in post in 2
     UserNotFound:
       description: User not found by passed login
       content:

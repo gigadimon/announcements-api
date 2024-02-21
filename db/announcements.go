@@ -4,7 +4,6 @@ import (
 	"announce-api/entities"
 	"database/sql"
 	"errors"
-	"fmt"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
@@ -121,10 +120,9 @@ func (m *AnnouncementManager) UploadNewAnnouncePhotosById(photos entities.Photos
 
 func (m *AnnouncementManager) DeleteAnnouncePhotoById(postId string, photoName string) (pq.StringArray, error) {
 	var updatedPhotos pq.StringArray
-	query := `UPDATE announcements SET photos=array_remove(photos, $1) WHERE id=$2 RETURNING photos`
+	query := `UPDATE announcements SET photos=array_remove(photos, $1) WHERE id=$2 AND $1 = ANY(photos) RETURNING photos`
 
-	photoPath := fmt.Sprint("/announcements/" + photoName)
-	row := m.db.QueryRow(query, photoPath, postId)
+	row := m.db.QueryRow(query, photoName, postId)
 	if err := row.Scan(&updatedPhotos); err != nil {
 		return updatedPhotos, err
 	}
