@@ -140,7 +140,6 @@ func (h *Handler) GetAnnouncementById(ctx *gin.Context) {
 
 func (h *Handler) CreateAnnouncement(ctx *gin.Context) {
 	inputAnnouncement := new(entities.InputAnnouncement)
-	// Парсим форму... !!!Проблема при отправке файлов на 250кбайт+, крашится соединение
 	form, err := ctx.MultipartForm()
 
 	if err != nil {
@@ -148,14 +147,12 @@ func (h *Handler) CreateAnnouncement(ctx *gin.Context) {
 		return
 	}
 
-	// Если файлы есть - создаем обьекты
 	files, ok := form.File["files"]
 	photos := make([]string, 0)
 	if ok {
 		photos = h.service.CreateListOfPhotos(files)
 	}
 
-	// Биндим поля формы в структуру, кроме фото, тк требуют отдельной обработки
 	if err := ctx.Bind(&inputAnnouncement); err != nil {
 		utils.SendErrorResponse(ctx, http.StatusBadRequest, err.Error())
 		return
@@ -163,7 +160,6 @@ func (h *Handler) CreateAnnouncement(ctx *gin.Context) {
 
 	authorInfo := getAuthorInfo(ctx)
 
-	// Наконец создаем анонс
 	createdAnnouncement, err := h.service.CreateAnnounce(inputAnnouncement, pq.Array(photos), authorInfo)
 	if err != nil {
 		utils.SendErrorResponse(ctx, http.StatusBadRequest, err.Error())
